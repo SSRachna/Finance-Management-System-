@@ -1,0 +1,189 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
+import csv
+import datetime
+                                                                class FinanceTracker:
+def _init_(self, root):  # Fixed constructor name
+self.root = root
+self.root.title("Advanced Finance Manager")
+self.root.geometry("600x800")
+                                                        # Define style for ttk widgets
+style = ttk.Style()
+style.configure("TLabel", background="#ffffff")
+style.configure("TFrame", background="#ffffff")
+style.configure("TLabelFrame", background="#ffffff")
+                                             # Load background image of cash and set it
+self.bg_image = Image.open(r"C:\Users\HP\Downloads\cash_background.jpg")
+self.bg_image = self.bg_image.resize((600, 800), Image.LANCZOS)
+self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+self.background_label = tk.Label(self.root, image=self.bg_photo)
+self.background_label.place(relwidth=1, relheight=1)
+                                                               # Variables to store data
+self.transactions = []
+self.income = tk.DoubleVar()
+self.expense = tk.DoubleVar()
+self.balance = tk.DoubleVar(value=0.0)
+self.monthly_budget = tk.DoubleVar(value=0.0)
+self.total_expenses = 0.0
+self.recurring_var = tk.BooleanVar()
+self.savings_goal = tk.DoubleVar(value=0.0)
+
+# Monthly Budget input
+ttk.Label(self.root, text="Set Monthly Budget (₹):").pack(pady=10)
+self.budget_entry = ttk.Entry(self.root, textvariable=self.monthly_budget)
+self.budget_entry.pack()
+                                                                # Savings goal input
+ttk.Label(self.root, text="Set Savings Goal (₹):").pack(pady=10)
+self.savings_entry = ttk.Entry(self.root, textvariable=self.savings_goal)
+self.savings_entry.pack()
+                                                                      # Income input
+ttk.Label(self.root, text="Add Income (₹):").pack(pady=10)
+self.income_entry = ttk.Entry(self.root, textvariable=self.income)
+self.income_entry.pack()
+                                                                      # Expense input
+ttk.Label(self.root, text="Add Expense (₹):").pack(pady=10)
+self.expense_entry = ttk.Entry(self.root, textvariable=self.expense)
+self.expense_entry.pack()
+                                                      # Recurring transaction checkbox
+self.recurring_checkbox = ttk.Checkbutton(self.root, text="Is this a recurring transaction?", variable=self.recurring_var)
+self.recurring_checkbox.pack(pady=5)
+                                                             # Category selection
+ttk.Label(self.root, text="Category:").pack(pady=10)
+self.category = ttk.Combobox(self.root, values=["Food", "Rent", "Transport", "Utilities", "Entertainment", "Other"])
+self.category.pack()
+                                                   # Buttons to add income and expenses
+self.add_income_button = ttk.Button(self.root, text="Add Income", command=self.add_income)
+self.add_income_button.pack(pady=5)
+self.add_expense_button = ttk.Button(self.root, text="Add Expense", command=self.add_expense)
+self.add_expense_button.pack(pady=5)
+                                                    # Buttons for pie chart and spending trend
+self.pie_chart_button = ttk.Button(self.root, text="Show Spending Breakdown", command=self.show_spending_breakdown)
+self.pie_chart_button.pack(pady=5)
+
+# Button to export data
+self.export_button = ttk.Button(self.root, text="Export to CSV", command=self.export_to_csv)
+self.export_button.pack(pady=15)
+                                                 # Display balance and remaining budget
+ttk.Label(self.root, text="Current Balance (₹):").pack(pady=20)
+self.balance_label = ttk.Label(self.root, textvariable=self.balance, font=("Arial", 14, "bold"))
+self.balance_label.pack()
+
+self.remaining_budget_label = ttk.Label(self.root, text="", font=("Arial", 10, "bold"))
+self.remaining_budget_label.pack(pady=10)
+# Savings Progress
+self.savings_progress_label = ttk.Label(self.root, text="Savings Progress:", font=("Arial", 12, "bold"))
+self.savings_progress_label.pack(pady=5)
+self.savings_progress = ttk.Progressbar(self.root, maximum=self.savings_goal.get(), length=400)
+self.savings_progress.pack(pady=10)
+# Log frame to display income/expense history
+self.log_frame = tk.Frame(self.root)
+self.log_frame.pack(fill="both", expand=True)
+self.log_text = tk.Text(self.log_frame, wrap="word", bg="#f0f0f0", font=("Arial", 10))
+self.log_text.pack(fill="both", expand=True)
+def add_income(self):
+"""Adds income to the balance and logs the transaction."""
+try:
+amount = float(self.income.get())
+if amount > 0:
+self.balance.set(self.balance.get() + amount)
+transaction = {"type": "Income", "amount": amount, "category": "N/A", "date": datetime.datetime.now()}
+self.transactions.append(transaction)
+self.log_transaction(transaction)
+self.income_entry.delete(0, 'end')
+except ValueError:
+self.show_error("Please enter a valid number for income.")
+
+def add_expense(self):
+"""Subtracts expense from the balance, logs the transaction with category."""
+try:
+amount = float(self.expense.get())
+category = self.category.get() or "N/A"
+if amount > 0:  # Ensure valid expense input
+self.balance.set(self.balance.get() - amount)
+self.total_expenses += amount
+transaction = {"type": "Expense", "amount": amount, "category": category, "date": datetime.datetime.now()}
+self.transactions.append(transaction)
+self.log_transaction(transaction)
+# Update savings progress
+self.update_savings_progress(amount)
+# Update remaining budget
+self.update_remaining_budget()
+# Handle recurring transactions
+if self.recurring_var.get():
+self.schedule_recurring_transaction(amount, category)
+self.expense_entry.delete(0, 'end')
+except ValueError:
+self.show_error("Please enter a valid number for expense.")
+def update_savings_progress(self, amount):
+"""Updates savings progress bar."""
+current_savings = self.savings_progress['value'] + amount
+if current_savings>self.savings_goal.get():
+current_savings = self.savings_goal.get()
+self.savings_progress['value'] = current_savings
+def schedule_recurring_transaction(self, amount, category):
+"""Schedules a recurring transaction."""
+future_date = datetime.datetime.now() + datetime.timedelta(days=30)
+transaction = {"type": "Expense", "amount": amount, "category": category, "date": future_date}
+self.transactions.append(transaction)
+self.log_transaction(transaction)
+def update_remaining_budget(self):
+"""Updates the remaining budget display."""
+remaining_budget = self.monthly_budget.get() - self.total_expenses
+if remaining_budget< 0:
+self.remaining_budget_label.config(text=f"Over Budget by ₹{-remaining_budget:.2f}", foreground="red")
+else:
+self.remaining_budget_label.config(text=f"Remaining Budget: ₹{remaining_budget:.2f}", foreground="green")
+def log_transaction(self, transaction):
+"""Logs the transaction in the text box."""
+log_entry = f"{transaction['date'].strftime('%Y-%m-%d %H:%M:%S')} | {transaction['type']} | {transaction['category']} | ₹{transaction['amount']:.2f}\n"
+self.log_text.insert(tk.END, log_entry)
+self.log_text.see(tk.END)
+def show_spending_breakdown(self):
+"""Displays a pie chart of spending by category."""
+category_totals = {}
+for transaction in self.transactions:
+if transaction['type'] == 'Expense':
+category = transaction['category']
+if category not in category_totals:
+category_totals[category] = 0
+category_totals[category] += transaction['amount']
+labels = [cat for cat, total in category_totals.items() if total > 0]
+sizes = [total for total in category_totals.values() if total > 0]
+if not sizes:
+self.show_info("No expenses to display in the chart.")
+return
+plt.figure(figsize=(8, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%')
+plt.title("Spending Breakdown by Category")
+plt.show()
+
+def export_to_csv(self):
+"""Exports transactions to a CSV file."""
+with open("transactions.csv", "w", newline='') as csvfile:
+fieldnames = ['Date', 'Type', 'Category', 'Amount']
+writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+writer.writeheader()
+for transaction in self.transactions:
+writer.writerow({
+'Date': transaction['date'].strftime('%Y-%m-%d %H:%M:%S'),
+'Type': transaction['type'],
+'Category': transaction['category'],
+'Amount': transaction['amount']
+})
+self.show_info("Transactions exported to transactions.csv")
+def show_info(self, message):
+"""Displays an informational message box."""
+messagebox.showinfo("Info", message)
+def show_warning(self, message):
+"""Displays a warning message box."""
+messagebox.showwarning("Warning", message)
+def show_error(self, message):
+"""Displays an error message box."""
+messagebox.showerror("Error", message)
+if _name_ == "_main_":
+root = tk.Tk()
+app = FinanceTracker(root)
+root.mainloop()
+
